@@ -1,0 +1,9 @@
+{
+  "appId": "py.oddone.pastillero",
+  "appName": "Pastillero",
+  "webDir": "www",
+  "android": { "backgroundColor": "#F2F3EF" },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_pill", "iconColor": "#0B5D4F" }
+  }
+}

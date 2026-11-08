@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Pastillero">
+<meta name="description" content="Medicamentos de tus mascotas: recordatorios, stock y consejos.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Pastillero de Mascotas</title>
+<meta name="theme-color" content="#F2F3EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1312" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+/* Layout: phone column. Hoy = 24-hour dose dial, then "Ahora" action cards, "Más tarde" compact rows, "Listo" folded. Each pet owns a collar colour. */
+:root {
+  --bg: #F2F3EF;
+  --surface: #FFFFFF;
+  --sunk: #E7EAE4;
+  --ink: #121A17;
+  --muted: #5A6560;
+  --line: #DADFD8;
+  --accent: #0B5D4F;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #D6EAE4;
+  --foil: #CDD3CD;
+  --late: #B4321F;
+  --late-soft: #F7DFD9;
+  --warn: #8F5600;
+  --warn-soft: #F8EACF;
+  --good: #1B7A43;
+  --c1: #C26F12; --c2: #2C5BC9; --c3: #4B7A26; --c4: #BE3B66; --c5: #0E7A84;
+  --shadow: 0 1px 2px rgba(18, 26, 23, .05), 0 8px 24px -8px rgba(18, 26, 23, .12);
+  --display: "Familjen Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --r: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1312; --surface: #161E1C; --sunk: #1E2826; --ink: #E8EFEC; --muted: #97A49F; --line: #29342F;
+    --accent: #5CC7AE; --accent-ink: #06201A; --accent-soft: #15332D; --foil: #303C38;
+    --late: #F2836C; --late-soft: #3A1D17; --warn: #E8A94D; --warn-soft: #34270F; --good: #5ECB89;
+    --c1: #F0A04A; --c2: #7EA2F5; --c3: #93C267; --c4: #F07FA4; --c5: #4FC4CE;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -8px rgba(0,0,0,.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1312; --surface: #161E1C; --sunk: #1E2826; --ink: #E8EFEC; --muted: #97A49F; --line: #29342F;
+  --accent: #5CC7AE; --accent-ink: #06201A; --accent-soft: #15332D; --foil: #303C38;
+  --late: #F2836C; --late-soft: #3A1D17; --warn: #E8A94D; --warn-soft: #34270F; --good: #5ECB89;
+  --c1: #F0A04A; --c2: #7EA2F5; --c3: #93C267; --c4: #F07FA4; --c5: #4FC4CE;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -8px rgba(0,0,0,.5);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-tap-highlight-color: transparent; }
+@media (pointer: fine) { html { overscroll-behavior: none; } }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+select { background-color: var(--bg); color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.skip { position: absolute; left: 16px; top: -60px; z-index: 40; background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 10px; }
+.skip:focus { top: calc(8px + env(safe-area-inset-top, 0px)); }
+.num { font-variant-numeric: tabular-nums; }
+
+.app {
+  max-width: 500px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 calc(92px + env(safe-area-inset-bottom, 0px));
+}
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 14px 12px; display: flex; align-items: center; gap: 10px; }
+.top-title { flex: 1; min-width: 0; }
+.top-title h1 { font-family: var(--display); font-weight: 700; font-size: 28px; line-height: 1.05; letter-spacing: -.02em; margin: 0; }
+.top-title p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.icon-btn { width: 44px; height: 44px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; flex: none; transition: transform .12s, background-color .15s; }
+.icon-btn:hover { background: var(--sunk); }
+.icon-btn:active { transform: scale(.94); }
+.icon-btn svg { width: 20px; height: 20px; stroke: var(--ink); }
+.icon-btn.solid { background: var(--accent); border-color: var(--accent); }
+.icon-btn.solid svg { stroke: var(--accent-ink); }
+.icon-btn.solid:hover { background: var(--accent); filter: brightness(1.08); }
+
+.view { display: flex; flex-direction: column; gap: 22px; }
+.example-note { font-size: 13.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; align-items: center; border: 1px dashed var(--line); border-radius: 12px; padding: 6px 6px 6px 12px; }
+.link-btn { background: none; border: 0; color: var(--accent); font-weight: 700; padding: 8px 10px; min-height: 40px; border-radius: 10px; }
+.link-btn:hover { background: var(--accent-soft); }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
+.sec-h h2 { font-family: var(--display); font-weight: 700; font-size: 19px; margin: 0; letter-spacing: -.01em; }
+.sec-h span { color: var(--muted); font-size: 14px; }
+
+/* Pet filter */
+.pets-filter { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin-inline: -4px; padding: 2px 4px; }
+.pets-filter::-webkit-scrollbar { display: none; }
+.pf { flex: none; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 14px 6px 6px; min-height: 44px; font-weight: 700; font-size: 15px; transition: border-color .15s, background-color .15s; }
+.pf.all { padding: 6px 16px; }
+.pf[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.pf .face { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 17px; background: color-mix(in srgb, var(--pc) 22%, transparent); border: 2px solid var(--pc); overflow: hidden; }
+
+/* Dial */
+.dial-card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 18px; display: grid; grid-template-columns: 172px 1fr; gap: 18px; align-items: center; }
+.dial { width: 172px; height: 172px; display: block; max-width: 100%; }
+.dial .track { fill: none; stroke: var(--sunk); stroke-width: 12; }
+.dial .past { fill: none; stroke: var(--accent-soft); stroke-width: 12; stroke-linecap: round; }
+.dial .tick { stroke: var(--muted); stroke-width: 1.5; }
+.dial .hr { fill: var(--muted); font-size: 10px; font-family: var(--body); text-anchor: middle; }
+.dial .now { stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+.dial .center-a { fill: var(--muted); font-size: 11px; text-anchor: middle; letter-spacing: .06em; font-family: var(--body); }
+.dial .center-b { fill: var(--ink); font-size: 26px; font-weight: 700; text-anchor: middle; font-family: var(--display); }
+.dial .center-c { fill: var(--muted); font-size: 11.5px; text-anchor: middle; font-family: var(--body); }
+.dial-side { display: grid; gap: 12px; min-width: 0; }
+.count { font-family: var(--display); font-weight: 700; font-size: 40px; line-height: 1; letter-spacing: -.03em; }
+.count small { font-size: 17px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.legend { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13.5px; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.legend .l-done { background: var(--muted); }
+.legend .l-open { box-shadow: inset 0 0 0 2px var(--muted); }
+.legend .l-late { box-shadow: inset 0 0 0 2px var(--late); background: var(--late-soft); }
+
+/* Stock strip */
+.restock { display: flex; gap: 12px; align-items: center; background: var(--warn-soft); border-radius: 16px; padding: 10px 10px 10px 14px; }
+.restock.out { background: var(--late-soft); }
+.restock .mini-blister { display: grid; grid-template-columns: repeat(5, 8px); gap: 3px; flex: none; }
+.restock .mini-blister i { width: 8px; height: 8px; border-radius: 50%; background: var(--foil); }
+.restock .mini-blister i.full { background: var(--warn); }
+.restock.out .mini-blister i.full { background: var(--late); }
+.restock p { margin: 0; flex: 1; min-width: 0; font-size: 14.5px; }
+.restock b { font-weight: 700; }
+
+/* Action cards */
+.stack { display: grid; gap: 12px; }
+.act { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; display: grid; gap: 14px; position: relative; overflow: hidden; }
+.act::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--pc); }
+.act-meta { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); flex-wrap: wrap; }
+.pet-tag { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink); }
+.pet-tag i { width: 9px; height: 9px; border-radius: 50%; background: var(--pc); }
+.state { margin-left: auto; font-size: 12.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.state.atrasada { background: var(--late-soft); color: var(--late); }
+.state.ahora { background: var(--accent-soft); color: var(--accent); }
+.state.pospuesta { background: var(--warn-soft); color: var(--warn); }
+.act h3 { margin: 0; font-family: var(--display); font-size: 23px; font-weight: 700; letter-spacing: -.015em; line-height: 1.15; }
+.act .how { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+.act .how b { color: var(--ink); }
+.act-actions .btn { white-space: nowrap; }
+.act-actions { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 10px 16px; font-weight: 700; font-size: 15px; min-height: 48px; transition: transform .12s, background-color .15s, filter .15s; }
+.btn:hover { background: var(--sunk); }
+.btn:active { transform: scale(.97); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+.btn.quiet { border-color: transparent; background: transparent; color: var(--muted); padding-inline: 12px; }
+.btn.quiet:hover { background: var(--sunk); color: var(--ink); }
+.btn.danger { color: var(--late); }
+.btn.small { min-height: 40px; padding: 6px 14px; font-size: 14px; }
+.btn.block { width: 100%; }
+
+/* Compact rows */
+.rows { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.r { display: grid; grid-template-columns: 52px 1fr 48px; gap: 10px; align-items: center; padding: 10px 10px 10px 14px; min-height: 64px; }
+.r + .r { border-top: 1px solid var(--line); }
+.r time { font-family: var(--display); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.r-main { min-width: 0; }
+.r-main b { display: block; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r-main span { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); min-width: 0; }
+.r-main span i { width: 8px; height: 8px; border-radius: 50%; background: var(--pc); flex: none; }
+.r-main span em { font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.check { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); background: transparent; display: grid; place-items: center; transition: border-color .15s, background-color .15s, transform .12s; }
+.check svg { width: 20px; height: 20px; stroke: var(--muted); opacity: .45; transition: opacity .15s; }
+.check:hover { border-color: var(--accent); }
+.check:hover svg { opacity: 1; stroke: var(--accent); }
+.check:active { transform: scale(.92); }
+.r.done { opacity: .72; }
+.r.done .r-main b { text-decoration: line-through; text-decoration-color: var(--muted); }
+.check.on { background: var(--accent); border-color: var(--accent); }
+.check.on svg { stroke: var(--accent-ink); opacity: 1; }
+details.fold > summary { list-style: none; cursor: pointer; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary .sec-h { margin: 0; padding: 4px 0 10px; }
+details.fold > summary .chev { transition: transform .2s; display: inline-block; }
+details.fold[open] > summary .chev { transform: rotate(90deg); }
+
+.empty { text-align: center; padding: 28px 16px; color: var(--muted); display: grid; gap: 10px; justify-items: center; background: var(--surface); border-radius: var(--r); }
+.empty h3 { font-family: var(--display); color: var(--ink); margin: 0; font-size: 20px; }
+.empty p { margin: 0; max-width: 32ch; }
+
+/* Pets */
+.pet { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden; }
+.pet-head { display: flex; gap: 14px; align-items: center; padding: 16px; background: color-mix(in srgb, var(--pc) 10%, var(--surface)); }
+.pet-head .face { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; background: var(--surface); border: 3px solid var(--pc); overflow: hidden; flex: none; }
+.pet-head h2 { margin: 0; font-family: var(--display); font-size: 24px; font-weight: 700; letter-spacing: -.015em; }
+.face img, .pet-tag img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.pet-tag .mini { width: 24px; height: 24px; border-radius: 50%; box-shadow: 0 0 0 2px var(--pc); overflow: hidden; flex: none; }
+.photo-field { display: flex; align-items: center; gap: 14px; }
+.photo-prev { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; font-size: 38px; background: var(--bg); border: 3px solid var(--pc); overflow: hidden; flex: none; }
+.photo-prev img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.file-btn { position: relative; display: inline-grid; place-items: center; cursor: pointer; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pet-head p { margin: 0; color: var(--muted); font-size: 14px; }
+.pet-head > div { flex: 1; min-width: 0; }
+.treat { border-top: 1px solid var(--line); padding: 12px 10px 12px 16px; display: flex; gap: 12px; align-items: center; }
+.treat > div { flex: 1; min-width: 0; }
+.treat h3 { margin: 0; font-size: 16px; font-weight: 700; }
+.treat p { margin: 1px 0 0; color: var(--muted); font-size: 14px; }
+.treat.inactive { opacity: .55; }
+.pet-foot { border-top: 1px solid var(--line); padding: 8px 10px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; }
+.history { border-top: 1px solid var(--line); padding: 4px 16px 12px; }
+.history summary { font-size: 14px; font-weight: 700; padding: 10px 0; cursor: pointer; }
+.history ul { margin: 0; padding: 0; display: grid; gap: 6px; }
+.history li { list-style: none; font-size: 14px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; font-variant-numeric: tabular-nums; }
+
+/* Stock */
+.stock-card { background: var(--surface); border-radius: 22px; padding: 16px; box-shadow: var(--shadow); display: grid; gap: 14px; }
+.stock-top { display: flex; gap: 12px; align-items: flex-start; }
+.stock-top > div { flex: 1; min-width: 0; }
+.stock-top h2 { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 700; }
+.stock-top p { margin: 2px 0 0; color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.stock-top p i { width: 8px; height: 8px; border-radius: 50%; background: var(--pc); }
+.days-left { text-align: right; flex: none; }
+.days-left b { display: block; font-family: var(--display); font-size: 34px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.days-left span { font-size: 13px; color: var(--muted); }
+.days-left.low b { color: var(--warn); }
+.days-left.out b { color: var(--late); }
+.blister { background: linear-gradient(160deg, var(--sunk), color-mix(in srgb, var(--sunk) 70%, var(--surface))); border-radius: 14px; padding: 12px; display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; box-shadow: inset 0 0 0 1px var(--line); }
+.blister i { aspect-ratio: 1.7; border-radius: 999px; background: var(--foil); box-shadow: inset 0 1px 3px rgba(0,0,0,.18); max-width: 100%; }
+.blister i.full { background: var(--pc); box-shadow: inset 0 -3px 0 rgba(0,0,0,.18), inset 0 2px 0 rgba(255,255,255,.35); }
+.level { height: 16px; border-radius: 8px; background: var(--sunk); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+.level span { display: block; height: 100%; background: var(--pc); border-radius: 8px; }
+.stock-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+
+/* Tips */
+.seg { display: flex; background: var(--sunk); border-radius: 14px; padding: 4px; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.seg button { flex: 1; border: 0; background: transparent; border-radius: 10px; padding: 8px 12px; font-weight: 700; font-size: 14px; color: var(--muted); white-space: nowrap; min-height: 40px; transition: background-color .15s, color .15s; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.tip { background: var(--surface); border-radius: 22px; padding: 20px; box-shadow: var(--shadow); }
+.tip h2 { font-family: var(--display); font-size: 22px; margin: 0 0 4px; font-weight: 700; }
+.tip > p { margin: 0 0 14px; color: var(--muted); }
+.tip ol { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 12px; }
+.tip li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 10px; }
+.tip li::before { content: counter(s); width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-family: var(--display); display: grid; place-items: center; font-size: 15px; }
+.caution { margin-top: 16px; padding: 12px 14px; border-radius: 14px; background: var(--late-soft); font-size: 15px; }
+.caution b { color: var(--late); }
+.disclaimer { font-size: 13.5px; color: var(--muted); text-align: center; padding: 0 8px; }
+.page-h h1 { font-family: var(--display); font-weight: 700; font-size: 28px; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+
+/* Tab bar */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line);
+  padding: 6px max(12px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.tabs-inner { max-width: 500px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.tabs button { border: 0; background: none; display: grid; justify-items: center; gap: 2px; padding: 4px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); position: relative; min-height: 52px; }
+.tabs button .ic { width: 52px; height: 30px; border-radius: 15px; display: grid; place-items: center; transition: background-color .18s; }
+.tabs button svg { width: 22px; height: 22px; stroke: currentColor; }
+.tabs button[aria-current="page"] { color: var(--ink); }
+.tabs button[aria-current="page"] .ic { background: var(--accent-soft); color: var(--accent); }
+.tabs .badge { position: absolute; top: 0; left: calc(50% + 10px); min-width: 18px; height: 18px; border-radius: 9px; background: var(--late); color: #fff; font-size: 11px; display: grid; place-items: center; padding: 0 5px; border: 2px solid var(--surface); }
+
+/* Sheet */
+.scrim { position: fixed; inset: 0; background: rgba(6, 12, 10, .5); z-index: 20; display: flex; align-items: flex-end; justify-content: center; animation: fade .2s ease-out; }
+.sheet { background: var(--surface); width: 100%; max-width: 500px; max-height: 92vh; overflow-y: auto; overscroll-behavior: contain; border-radius: 26px 26px 0 0;
+  padding: 8px max(18px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); animation: up .26s cubic-bezier(.2,.8,.2,1); }
+@keyframes up { from { transform: translateY(32px); opacity: .5; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 6px auto 14px; }
+.sheet h2 { font-family: var(--display); font-size: 24px; margin: 0 0 16px; font-weight: 700; letter-spacing: -.015em; }
+form { display: grid; gap: 14px; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field label, .field .lbl { font-size: 14px; font-weight: 700; color: var(--muted); }
+.field input, .field select, .field textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 11px 12px; min-height: 48px; font-size: 16px; transition: border-color .15s; }
+.field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.field textarea { min-height: 72px; resize: vertical; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hint { font-size: 13.5px; color: var(--muted); margin: 0; }
+.picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.picker button { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); font-size: 24px; display: grid; place-items: center; }
+.picker button[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+.picker.colors button { background: var(--sw); border-color: transparent; }
+.times { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.times .t { display: flex; align-items: center; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding-left: 4px; }
+.times .t input { border: 0; background: transparent; min-height: 44px; padding: 6px; width: 112px; font-size: 16px; }
+.times .t button { border: 0; background: none; color: var(--muted); padding: 0 12px; font-size: 20px; min-height: 44px; }
+.sheet-actions { display: flex; gap: 10px; margin-top: 6px; }
+.sheet-actions .btn { flex: 1; }
+.check-line { display: flex; gap: 12px; align-items: center; font-weight: 700; min-height: 44px; }
+.check-line input { width: 22px; height: 22px; accent-color: var(--accent); }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 30; background: var(--ink); color: var(--bg); border-radius: 16px; padding: 6px 6px 6px 16px; display: flex; gap: 12px; align-items: center; font-size: 15px; box-shadow: var(--shadow); max-width: calc(100% - 32px); animation: up .2s ease-out; }
+.toast button { border: 0; background: none; color: var(--accent-soft); font-weight: 700; padding: 10px 12px; min-height: 44px; border-radius: 10px; }
+@media (prefers-reduced-motion: reduce) { .sheet, .scrim, .toast { animation: none; } * { transition: none !important; } }
+@media (max-width: 380px) { .row2 { grid-template-columns: 1fr; } .dial-card { grid-template-columns: 1fr; justify-items: center; } .dial-side { justify-items: center; text-align: center; } }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#view">Ir al contenido</a>
+<div class="app">
+  <header class="top">
+    <div class="top-title"><h1 id="page-title">Hoy</h1><p id="today-label"></p></div>
+    <button class="icon-btn solid" id="add-btn" data-action="new-treatment" aria-label="Nuevo tratamiento">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button class="icon-btn" data-action="open-settings" aria-label="Ajustes">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    </button>
+  </header>
+  <main id="view" class="view" tabindex="-1"></main>
+</div>
+
+<nav class="tabs" aria-label="Secciones">
+  <div class="tabs-inner">
+    <button data-tab="hoy"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>Hoy</button>
+    <button data-tab="mascotas"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.5" ry="3.8"/><circle cx="6" cy="10.5" r="1.8"/><circle cx="18" cy="10.5" r="1.8"/><circle cx="9.3" cy="6.5" r="1.8"/><circle cx="14.7" cy="6.5" r="1.8"/></svg></span>Mascotas</button>
+    <button data-tab="stock"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3"/><circle cx="8.5" cy="10" r="1.6"/><circle cx="15.5" cy="10" r="1.6"/><circle cx="8.5" cy="15" r="1.6"/><circle cx="15.5" cy="15" r="1.6"/></svg></span>Stock<span class="badge" id="stock-badge" hidden></span></button>
+    <button data-tab="consejos"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></svg></span>Consejos</button>
+  </div>
+</nav>
+
+<div id="sheet-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+  const KEY = 'pastillero-v1';
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const pad = n => String(n).padStart(2, '0');
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const hm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const parseDay = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const atTime = (ds, t) => { const d = parseDay(ds); const [h, m] = t.split(':').map(Number); d.setHours(h, m, 0, 0); return d; };
+  const addDays = (ds, n) => { const d = parseDay(ds); d.setDate(d.getDate() + n); return ymd(d); };
+  const daysBetween = (a, b) => Math.round((parseDay(b) - parseDay(a)) / 864e5);
+  const NF = new Intl.NumberFormat('es-PY', { maximumFractionDigits: 1 });
+  const fmtNum = n => NF.format(n);
+  const DF_LONG = new Intl.DateTimeFormat('es-PY', { weekday: 'long', day: 'numeric', month: 'long' });
+  const DF_SHORT = new Intl.DateTimeFormat('es-PY', { day: 'numeric', month: 'short' });
+  const COLORS = ['c1', 'c2', 'c3', 'c4', 'c5'];
+
+  const FORMS = {
+    pastilla: { label: 'Pastilla', unit: 'pastillas' },
+    liquido: { label: 'Jarabe o suspensión', unit: 'ml' },
+    gotas: { label: 'Gotas (oídos u ojos)', unit: 'aplicaciones' },
+    pipeta: { label: 'Pipeta', unit: 'pipetas' },
+    inyeccion: { label: 'Inyección', unit: 'dosis' },
+    crema: { label: 'Crema o pomada', unit: 'aplicaciones' }
+  };
+  const SPECIES = { perro: 'Perro', gato: 'Gato', otro: 'Otro' };
+  const FOOD = { con: 'con comida', sin: 'en ayunas', indistinto: '' };
+
+  // ---------- State ----------
+  let state;
+  function seed() {
+    const today = ymd(new Date());
+    const toby = uid(), mishi = uid();
+    const t1 = uid(), t2 = uid(), t3 = uid();
+    const s = {
+      example: true, me: 'Norman',
+      pets: [
+        { id: toby, name: 'Toby', species: 'perro', emoji: '🐶', color: 'c1', weight: 12, vet: 'Clínica del barrio' },
+        { id: mishi, name: 'Mishi', species: 'gato', emoji: '🐱', color: 'c2', weight: 4, vet: '' }
+      ],
+      treatments: [
+        { id: t1, petId: toby, med: 'Antibiótico', form: 'pastilla', dose: '1 pastilla', units: 1, freq: 'times', times: ['08:00', '20:00'], everyHours: 8, everyDays: 1, startDate: addDays(today, -4), endDate: addDays(today, 5), food: 'con', stock: 6, alertDays: 5, notes: 'Terminar el tratamiento aunque se vea mejor.', active: true },
+        { id: t2, petId: mishi, med: 'Antiinflamatorio', form: 'liquido', dose: '0,5 ml', units: 0.5, freq: 'times', times: ['09:00'], everyHours: 8, everyDays: 1, startDate: addDays(today, -10), endDate: '', food: 'con', stock: 9, alertDays: 5, notes: 'Con jeringa por el costado de la boca.', active: true },
+        { id: t3, petId: toby, med: 'Antipulgas', form: 'pipeta', dose: '1 pipeta', units: 1, freq: 'days', times: ['10:00'], everyHours: 8, everyDays: 30, startDate: today, endDate: '', food: 'indistinto', stock: 2, alertDays: 7, notes: 'En la nuca, sobre la piel.', active: true }
+      ],
+      doses: {}
+    };
+    const now = new Date();
+    for (let i = -4; i <= 0; i++) {
+      const ds = addDays(today, i);
+      for (const t of s.treatments) for (const tm of occurrences(t, ds)) {
+        if (t.id === t3 && i === 0) continue; // leave one late dose so the example shows that state
+        const at = atTime(ds, tm);
+        if (at < now - 2 * 36e5 || i < 0) s.doses[`${t.id}|${ds}T${tm}`] = { status: 'given', by: i < -1 ? 'Familia' : 'Norman', at: new Date(+at + 9 * 6e4).toISOString() };
+      }
+    }
+    return s;
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) { const s = JSON.parse(raw); s.pets.forEach((p, i) => { if (!p.color) p.color = COLORS[i % COLORS.length]; }); return s; }
+    } catch (e) {}
+    return seed();
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); return true; } catch (e) { return false; } }
+
+  // ---------- Schedule logic ----------
+  function occurrences(t, ds) {
+    if (!t.active || !t.startDate || ds < t.startDate) return [];
+    if (t.endDate && ds > t.endDate) return [];
+    if (t.freq === 'times') return [...t.times].filter(Boolean).sort();
+    if (t.freq === 'days') { const n = Math.max(1, +t.everyDays || 1); return daysBetween(t.startDate, ds) % n === 0 ? [t.times[0] || '09:00'] : []; }
+    if (t.freq === 'hours') {
+      const step = Math.max(1, +t.everyHours || 8) * 36e5;
+      const start = atTime(t.startDate, t.times[0] || '08:00');
+      const dayStart = parseDay(ds), dayEnd = parseDay(addDays(ds, 1));
+      const k = Math.max(0, Math.ceil((dayStart - start) / step));
+      const out = [];
+      for (let x = +start + k * step; x < +dayEnd; x += step) out.push(hm(new Date(x)));
+      return out;
+    }
+    return [];
+  }
+  function unitsPerDay(t) {
+    const u = +t.units || 0;
+    if (t.freq === 'times') return t.times.filter(Boolean).length * u;
+    if (t.freq === 'hours') return (24 / Math.max(1, +t.everyHours || 8)) * u;
+    if (t.freq === 'days') return u / Math.max(1, +t.everyDays || 1);
+    return 0;
+  }
+  function remainingNeed(t) {
+    if (!t.endDate) return Infinity;
+    let need = 0;
+    for (let ds = ymd(new Date()), i = 0; ds <= t.endDate && i < 400; ds = addDays(ds, 1), i++) {
+      for (const tm of occurrences(t, ds)) {
+        const rec = state.doses[`${t.id}|${ds}T${tm}`];
+        if (!rec || (rec.status !== 'given' && rec.status !== 'skipped')) need += +t.units || 0;
+      }
+    }
+    return need;
+  }
+  function stockInfo(t) {
+    const perDay = unitsPerDay(t);
+    const daysLeft = perDay > 0 ? t.stock / perDay : Infinity;
+    const need = remainingNeed(t);
+    const covers = t.stock >= need;
+    const out = t.active && t.stock < (+t.units || 0) && need > 0;
+    const low = t.active && !covers && !out && daysLeft <= (+t.alertDays || 5);
+    return { perDay, daysLeft, need, covers, out, low };
+  }
+  function statusOf(key, at) {
+    const rec = state.doses[key], now = new Date();
+    if (rec && (rec.status === 'given' || rec.status === 'skipped')) return rec.status;
+    const due = rec && rec.status === 'snoozed' ? new Date(rec.snoozeTo) : at;
+    if (rec && rec.status === 'snoozed' && now < due) return 'pospuesta';
+    if (now - due > 30 * 6e4) return 'atrasada';
+    if (now >= due - 15 * 6e4) return 'ahora';
+    return 'pendiente';
+  }
+  const STATUS_LABEL = { pendiente: 'Pendiente', ahora: 'Ahora', atrasada: 'Atrasada', pospuesta: 'Pospuesta', given: 'Dada', skipped: 'Omitida' };
+  const pet = id => state.pets.find(p => p.id === id);
+  const treat = id => state.treatments.find(t => t.id === id);
+  const pc = p => `--pc: var(--${p?.color || 'c1'})`;
+  const face = (p, size = 56) => p?.photo ? `<img src="${p.photo}" alt="" width="${size}" height="${size}">` : esc(p?.emoji);
+
+  function dayDoses(ds, petFilter) {
+    const list = [];
+    for (const t of state.treatments) {
+      const p = pet(t.petId); if (!p) continue;
+      if (petFilter && p.id !== petFilter) continue;
+      for (const tm of occurrences(t, ds)) {
+        const key = `${t.id}|${ds}T${tm}`, at = atTime(ds, tm);
+        list.push({ key, t, p, time: tm, at, status: statusOf(key, at), rec: state.doses[key] });
+      }
+    }
+    return list.sort((a, b) => a.time.localeCompare(b.time) || a.p.name.localeCompare(b.p.name));
+  }
+  const dueAt = d => d.rec?.status === 'snoozed' ? new Date(d.rec.snoozeTo) : d.at;
+  function nextDose(petFilter) {
+    const now = new Date(), today = ymd(now);
+    for (let i = 0; i < 40; i++) {
+      const found = dayDoses(addDays(today, i), petFilter).find(d => (d.status === 'pendiente' || d.status === 'pospuesta') && dueAt(d) >= now);
+      if (found) return found;
+    }
+    return null;
+  }
+  function untilText(date) {
+    const mins = Math.max(0, Math.round((date - new Date()) / 6e4));
+    if (mins < 60) return `en ${mins} min`;
+    const h = Math.floor(mins / 60), m = mins % 60;
+    if (h < 24) return `en ${h} h${m ? ' ' + m + ' min' : ''}`;
+    const d = Math.round(h / 24); return `en ${d} día${d > 1 ? 's' : ''}`;
+  }
+  function freqText(t) {
+    if (t.freq === 'times') { const n = t.times.filter(Boolean).length; return `${n === 1 ? '1 vez' : n + ' veces'} al día · ${t.times.filter(Boolean).sort().join(', ')}`; }
+    if (t.freq === 'hours') return `Cada ${t.everyHours} h desde las ${t.times[0]}`;
+    if (t.freq === 'days') return t.everyDays == 1 ? `Todos los días a las ${t.times[0]}` : `Cada ${t.everyDays} días a las ${t.times[0]}`;
+    return '';
+  }
+  const unitOf = t => FORMS[t.form]?.unit || 'unidades';
+
+  // ---------- Render ----------
+  let tab = 'hoy', petFilter = '', tipForm = 'pastilla', tipSpecies = 'perro';
+  const TITLES = { hoy: 'Hoy', mascotas: 'Mascotas', stock: 'Stock', consejos: 'Consejos' };
+  function render() {
+    const now = new Date();
+    $('#page-title').textContent = TITLES[tab];
+    $('#today-label').textContent = tab === 'hoy' ? DF_LONG.format(now).replace(/^./, c => c.toUpperCase()) : tab === 'consejos' ? 'Cómo dar cada medicamento' : tab === 'stock' ? '¿Cuánto te queda?' : `${state.pets.length} en casa`;
+    document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'));
+    const alerts = state.treatments.filter(t => { const s = stockInfo(t); return s.low || s.out; }).length;
+    const badge = $('#stock-badge'); badge.hidden = !alerts; badge.textContent = alerts;
+    const add = $('#add-btn');
+    add.hidden = tab === 'consejos';
+    const addPet = tab === 'mascotas' || !state.pets.length;
+    add.dataset.action = addPet ? 'new-pet' : 'new-treatment';
+    add.setAttribute('aria-label', addPet ? 'Nueva mascota' : 'Nuevo tratamiento');
+    $('#view').innerHTML = ({ hoy: viewToday, mascotas: viewPets, stock: viewStock, consejos: viewTips })[tab]();
+  }
+  const exampleNote = () => state.example ? `<div class="example-note"><span>Datos de ejemplo</span><button class="link-btn" data-action="clear-all-ask">Empezar de cero</button></div>` : '';
+  const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+  function dial(list, next) {
+    const R = 62, C = 86, toXY = (frac, r) => { const a = frac * 2 * Math.PI - Math.PI / 2; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
+    const now = new Date(), nf = (now.getHours() + now.getMinutes() / 60) / 24;
+    const [nx, ny] = toXY(nf, R), large = nf > .5 ? 1 : 0;
+    const past = nf > 0.002 ? `<path class="past" d="M${C} ${C - R} A${R} ${R} 0 ${large} 1 ${nx.toFixed(1)} ${ny.toFixed(1)}"/>` : '';
+    const ticks = [0, 6, 12, 18].map(h => { const [lx, ly] = toXY(h / 24, R + 17); return `<text class="hr" x="${lx.toFixed(1)}" y="${(ly + 3.5).toFixed(1)}">${h}</text>`; }).join('');
+    const marks = list.map(d => {
+      const [h, m] = d.time.split(':').map(Number), [x, y] = toXY((h + m / 60) / 24, R);
+      const done = d.status === 'given' || d.status === 'skipped', late = d.status === 'atrasada';
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="8" fill="${done ? `var(--${d.p.color})` : late ? 'var(--late-soft)' : 'var(--surface)'}" stroke="${late ? 'var(--late)' : `var(--${d.p.color})`}" stroke-width="3"><title>${d.time} · ${esc(d.t.med)} · ${STATUS_LABEL[d.status]}</title></circle>`;
+    }).join('');
+    const center = next ? `<text class="center-a" x="${C}" y="${C - 16}">PRÓXIMA</text><text class="center-b num" x="${C}" y="${C + 12}">${hm(dueAt(next))}</text><text class="center-c" x="${C}" y="${C + 30}">${untilText(dueAt(next))}</text>`
+      : `<text class="center-a" x="${C}" y="${C + 4}">SIN PENDIENTES</text>`;
+    return `<svg class="dial" viewBox="0 0 172 172" role="img" aria-label="Reloj de 24 horas con ${list.length} tomas de hoy"><circle class="track" cx="${C}" cy="${C}" r="${R}"/>${past}${ticks}${marks}<circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="3.5" fill="var(--ink)"/>${center}</svg>`;
+  }
+
+  function petsFilter() {
+    if (state.pets.length < 2) return '';
+    return `<div class="pets-filter" role="group" aria-label="Filtrar por mascota"><button class="pf all" data-action="filter" data-v="" aria-pressed="${!petFilter}">Todas</button>${state.pets.map(p => `<button class="pf" style="${pc(p)}" data-action="filter" data-v="${p.id}" aria-pressed="${petFilter === p.id}"><span class="face" aria-hidden="true">${face(p, 30)}</span>${esc(p.name)}</button>`).join('')}</div>`;
+  }
+
+  function viewToday() {
+    if (!state.pets.length) return emptyState('Agregá tu primera mascota', 'Después cargás sus medicamentos y la app arma la agenda del día.', 'new-pet', 'Agregar mascota');
+    const list = dayDoses(ymd(new Date()), petFilter);
+    const done = list.filter(d => d.status === 'given' || d.status === 'skipped');
+    const urgent = list.filter(d => d.status === 'atrasada' || d.status === 'ahora');
+    const later = list.filter(d => d.status === 'pendiente' || d.status === 'pospuesta');
+    const late = list.filter(d => d.status === 'atrasada').length;
+    const next = nextDose(petFilter);
+    const lowList = state.treatments.filter(t => { const s = stockInfo(t); return (s.low || s.out) && (!petFilter || t.petId === petFilter); });
+
+    let html = exampleNote() + petsFilter();
+    html += `<section class="dial-card" aria-label="Resumen del día">${dial(list, next)}
+      <div class="dial-side"><div><div class="count num">${done.length}<small> de ${list.length}</small></div><div style="color:var(--muted);font-size:14px">tomas dadas hoy</div></div>
+      <ul class="legend"><li><i class="l-done"></i>Dada</li><li><i class="l-open"></i>Pendiente</li>${late ? `<li><i class="l-late"></i>${late} atrasada${late > 1 ? 's' : ''}</li>` : ''}</ul></div></section>`;
+    for (const t of lowList) {
+      const s = stockInfo(t), p = pet(t.petId), left = Math.floor(t.stock);
+      html += `<div class="restock ${s.out ? 'out' : ''}"><span class="mini-blister" aria-hidden="true">${Array.from({ length: 10 }, (_, i) => `<i class="${i < left ? 'full' : ''}"></i>`).join('')}</span><p>${s.out ? `<b>Sin stock</b> de ${esc(t.med)} (${esc(p?.name)})` : `<b>${esc(t.med)}</b> de ${esc(p?.name)} alcanza <span class="num">${Math.floor(s.daysLeft)}</span> día${Math.floor(s.daysLeft) === 1 ? '' : 's'}`}</p><button class="btn small" data-action="restock" data-id="${t.id}">Repuse</button></div>`;
+    }
+    if (!list.length) return html + `<div class="empty"><h3>Hoy no hay tomas</h3><p>Los tratamientos activos aparecen acá a su hora.</p></div>`;
+    if (urgent.length) html += `<section><div class="sec-h"><h2>Ahora</h2><span>${urgent.length} por dar</span></div><div class="stack">${urgent.map(actCard).join('')}</div></section>`;
+    if (later.length) html += `<section><div class="sec-h"><h2>Más tarde</h2><span>${later.length}</span></div><div class="rows">${later.map(row).join('')}</div></section>`;
+    if (done.length) html += `<details class="fold" ${urgent.length + later.length === 0 ? 'open' : ''}><summary><div class="sec-h"><h2><span class="chev" aria-hidden="true">›</span> Listo</h2><span>${done.length}</span></div></summary><div class="rows">${done.map(row).join('')}</div></details>`;
+    return html;
+  }
+  function actCard(d) {
+    const { t, p, status, rec } = d;
+    const food = FOOD[t.food];
+    return `<article class="act" style="${pc(p)}">
+      <div class="act-meta"><span class="pet-tag">${p.photo ? `<span class="mini">${face(p, 24)}</span>` : '<i></i>'}${esc(p.name)}</span><span class="num">${status === 'pospuesta' ? hm(new Date(rec.snoozeTo)) : d.time}</span><span class="state ${status}">${STATUS_LABEL[status]}</span></div>
+      <div><h3>${esc(t.med)}</h3><p class="how"><b>${esc(t.dose)}</b>${food ? ' · ' + food : ''}${t.notes ? ' · ' + esc(t.notes) : ''}</p></div>
+      <div class="act-actions"><button class="btn primary" data-action="give" data-key="${d.key}">Ya se la di</button><button class="btn" data-action="snooze" data-key="${d.key}" aria-label="Posponer 15 minutos">+15 min</button><button class="btn quiet" data-action="skip" data-key="${d.key}">Omitir</button></div>
+    </article>`;
+  }
+  function row(d) {
+    const { t, p, status, rec } = d;
+    const isDone = status === 'given' || status === 'skipped';
+    const sub = isDone ? (status === 'given' ? `${esc(rec.by)} · ${rec.at ? hm(new Date(rec.at)) : ''}` : `Omitida · ${esc(rec.by)}`) : `${esc(p.name)} · ${esc(t.dose)}${status === 'pospuesta' ? ' · pospuesta' : ''}`;
+    const btn = isDone
+      ? `<button class="check on" data-action="undo-dose" data-key="${d.key}" aria-label="Deshacer: ${esc(t.med)} de ${esc(p.name)}">${CHECK_SVG}</button>`
+      : `<button class="check" data-action="give" data-key="${d.key}" aria-label="Marcar como dada: ${esc(t.med)} de ${esc(p.name)}">${CHECK_SVG}</button>`;
+    return `<div class="r ${isDone ? 'done' : ''}" style="${pc(p)}"><time class="num">${status === 'pospuesta' ? hm(new Date(rec.snoozeTo)) : d.time}</time><div class="r-main"><b>${esc(t.med)}</b><span><i></i><em>${sub}</em></span></div>${btn}</div>`;
+  }
+  function emptyState(h, p, action, label) {
+    return `<div class="empty"><h3>${h}</h3><p>${p}</p><button class="btn primary" data-action="${action}">${label}</button></div>`;
+  }
+
+  function viewPets() {
+    let html = exampleNote();
+    if (!state.pets.length) return html + emptyState('Todavía no hay mascotas', 'Agregá una para empezar a cargar sus tratamientos.', 'new-pet', 'Agregar mascota');
+    for (const p of state.pets) {
+      const ts = state.treatments.filter(t => t.petId === p.id);
+      const hist = Object.entries(state.doses).filter(([k, r]) => r.status !== 'snoozed' && ts.some(t => k.startsWith(t.id + '|')))
+        .sort((a, b) => b[0].split('|')[1].localeCompare(a[0].split('|')[1])).slice(0, 8);
+      html += `<section class="pet" style="${pc(p)}">
+        <div class="pet-head"><div class="face" aria-hidden="true">${face(p)}</div><div><h2>${esc(p.name)}</h2><p>${SPECIES[p.species] || ''}${p.weight ? ` · <span class="num">${fmtNum(p.weight)}</span> kg` : ''}${p.vet ? ` · ${esc(p.vet)}` : ''}</p></div>
+        <button class="btn small quiet" data-action="edit-pet" data-id="${p.id}" aria-label="Editar ${esc(p.name)}">Editar</button></div>
+        ${ts.length ? ts.map(t => `<div class="treat ${t.active ? '' : 'inactive'}"><div><h3>${esc(t.med)} · ${esc(t.dose)}</h3><p>${freqText(t)}${t.endDate ? ` · hasta el ${DF_SHORT.format(parseDay(t.endDate))}` : ''}${t.active ? '' : ' · pausado'}</p></div><button class="btn small quiet" data-action="edit-treatment" data-id="${t.id}" aria-label="Editar ${esc(t.med)}">Editar</button></div>`).join('') : `<div class="treat"><div><p>Sin tratamientos cargados.</p></div></div>`}
+        ${hist.length ? `<details class="history"><summary>Historial reciente</summary><ul>${hist.map(([k, r]) => { const t = treat(k.split('|')[0]); const [ds, tm] = k.split('|')[1].split('T'); return `<li><span>${DF_SHORT.format(parseDay(ds))} ${tm} · ${esc(t?.med)}</span><span>${r.status === 'given' ? 'Dada · ' + esc(r.by) : 'Omitida'}</span></li>`; }).join('')}</ul></details>` : ''}
+        <div class="pet-foot"><button class="btn small" data-action="new-treatment" data-pet="${p.id}">Agregar tratamiento</button></div>
+      </section>`;
+    }
+    return html;
+  }
+
+  function viewStock() {
+    const ts = state.treatments.filter(t => t.active);
+    let html = exampleNote();
+    if (!ts.length) return html + emptyState('Sin tratamientos activos', 'Cuando cargues uno, acá vas a ver cuánto te queda y cuándo reponer.', 'new-treatment', 'Agregar tratamiento');
+    const order = t => { const s = stockInfo(t); return s.out ? 0 : s.low ? 1 : 2; };
+    for (const t of [...ts].sort((a, b) => order(a) - order(b) || stockInfo(a).daysLeft - stockInfo(b).daysLeft)) {
+      const s = stockInfo(t), p = pet(t.petId), unit = unitOf(t);
+      const countable = ['pastillas', 'pipetas', 'dosis'].includes(unit) && t.stock <= 40;
+      let visual;
+      if (countable) {
+        const cells = Math.max(10, Math.ceil(Math.max(t.stock, 1) / 10) * 10);
+        visual = `<div class="blister" role="img" aria-label="${fmtNum(t.stock)} ${unit} restantes">${Array.from({ length: cells }, (_, i) => `<i class="${i < Math.floor(t.stock) ? 'full' : ''}"></i>`).join('')}</div>`;
+      } else {
+        const ref = Math.max(t.stock, unitsPerDay(t) * 30, 1);
+        visual = `<div class="level" role="img" aria-label="${fmtNum(t.stock)} ${unit} restantes"><span style="width:${Math.min(100, (t.stock / ref) * 100)}%"></span></div>`;
+      }
+      const dl = isFinite(s.daysLeft) ? Math.floor(s.daysLeft) : '—';
+      const foot = t.endDate && s.covers ? 'Alcanza hasta terminar el tratamiento' : s.out ? 'No alcanza para la próxima toma' : (t.freq === 'days' && t.everyDays > 1 ? `Usa ${fmtNum(t.units)} ${unit} cada ${t.everyDays} días` : `Usa ${fmtNum(s.perDay)} ${unit} por día`);
+      html += `<section class="stock-card" style="${pc(p)}">
+        <div class="stock-top"><div><h2>${esc(t.med)}</h2><p><i></i>${esc(p?.name)} · <span class="num">${fmtNum(t.stock)}</span> ${unit}</p></div>
+        <div class="days-left ${s.out ? 'out' : s.low ? 'low' : ''}"><b>${dl}</b><span>días</span></div></div>
+        ${visual}
+        <div class="stock-foot"><span>${foot}</span><button class="btn small" data-action="restock" data-id="${t.id}">Repuse</button></div>
+      </section>`;
+    }
+    return html;
+  }
+
+  const TIPS = {
+    pastilla: {
+      perro: { intro: 'La mayoría de los perros la aceptan escondida en un bocado.', steps: [
+        'Dale primero un bocado sin pastilla (queso, salchicha o pasta de maní sin xilitol), después el que la lleva y enseguida otro limpio. Así no la busca.',
+        'Si la escupe, abrile la boca tomando el hocico desde arriba, apoyá la pastilla al fondo de la lengua y cerrale la boca.',
+        'Mantené la cabeza horizontal y masajeale la garganta hasta que trague. Soplarle suave la nariz ayuda.',
+        'Terminá con agua o un premio para que asocie el momento con algo bueno.'],
+        caution: 'No partas ni tritures una pastilla sin ranura sin preguntarle al veterinario: algunas tienen cubierta que la protege.' },
+      gato: { intro: 'Con gatos conviene ser rápido y seguir siempre con agua.', steps: [
+        'Envolvelo en una toalla dejando solo la cabeza afuera, sobre todo si araña.',
+        'Tomá la cabeza desde arriba con los dedos en los pómulos e inclinala hacia atrás: la boca se abre sola un poco.',
+        'Con la otra mano bajá la mandíbula y dejá caer la pastilla al fondo de la lengua, en el centro. Un lanzapastillas ayuda mucho.',
+        'Cerrá la boca, masajeá la garganta y enseguida dale unos ml de agua con jeringa o un poco de comida húmeda.'],
+        caution: 'En gatos, una pastilla tragada en seco puede quedarse en el esófago e irritarlo. Siempre seguí con agua o comida.' },
+      otro: { intro: 'En conejos, aves y roedores casi siempre se da triturada o en suspensión.', steps: [
+        'Preguntale al veterinario si la pastilla se puede triturar y mezclar con un poco de agua o puré.',
+        'Dala con jeringa sin aguja, de a poco, por el costado de la boca.',
+        'Anotá si comió normal después: en exóticos, dejar de comer es una señal de alerta.'],
+        caution: 'En animales chicos la dosis es mínima: medí con jeringa graduada, nunca a ojo.' }
+    },
+    liquido: { all: { intro: 'Los jarabes y suspensiones se dan con jeringa, nunca a cucharadas.', steps: [
+      'Agitá bien el frasco si es suspensión y cargá la dosis exacta en una jeringa sin aguja.',
+      'Con la cabeza en posición normal, metí la punta por la comisura de los labios, detrás del colmillo.',
+      'Empujá el líquido despacio, de a poco, dándole tiempo a tragar entre cada empujón.',
+      'Lavá la jeringa con agua tibia después de cada uso y guardá el frasco como dice el prospecto (algunos van en heladera).'],
+      caution: 'No le levantes la cabeza hacia arriba ni le tires todo de golpe: el líquido puede irse a la vía respiratoria.' } },
+    gotas: { all: { intro: 'Para oídos u ojos, la clave es la calma y no tocar con el gotero.', steps: [
+      'Dejá el frasco unos minutos a temperatura ambiente: las gotas frías molestan.',
+      'Oídos: levantá la oreja, poné las gotas en el conducto y masajeá la base de la oreja unos 20 a 30 segundos. Después dejá que sacuda la cabeza.',
+      'Ojos: sostené la cabeza, apoyá la mano con el gotero sobre la frente y dejá caer la gota desde arriba sin tocar el ojo.',
+      'Si son dos medicamentos para el mismo ojo, esperá unos 5 minutos entre uno y otro.'],
+      caution: 'Si el ojo se pone más rojo, cerrado o con secreción después de empezar, consultá al veterinario.' } },
+    pipeta: {
+      perro: { intro: 'Se aplica en la piel, no sobre el pelo.', steps: [
+        'Usá la pipeta que corresponde al peso de tu perro; el rango está en la caja.',
+        'Separá el pelo en la nuca, entre los omóplatos, hasta ver la piel.',
+        'Vaciá la pipeta directo sobre la piel; en perros grandes, en dos o tres puntos a lo largo del lomo.',
+        'Evitá bañarlo y que otros animales lo laman en esa zona los días que indica el prospecto.'],
+        caution: 'Nunca uses en un gato una pipeta de perro: muchas tienen permetrina, que es tóxica para gatos. Tampoco dejes que el gato lama al perro recién tratado.' },
+      gato: { intro: 'Se aplica en la nuca, donde no se puede lamer.', steps: [
+        'Usá solo productos aprobados para gatos y del rango de peso correcto.',
+        'Separá el pelo en la base del cráneo hasta ver la piel.',
+        'Vaciá la pipeta en un solo punto, sobre la piel.',
+        'Si conviven varios gatos, separalos un rato para que no se laman entre ellos.'],
+        caution: 'Las pipetas de perro pueden ser mortales para gatos. Revisá siempre que diga “gatos” en la caja.' },
+      otro: { intro: 'En conejos y otros animales chicos muchos antiparasitarios comunes son peligrosos.', steps: [
+        'Usá solo lo que indique el veterinario para esa especie.',
+        'Aplicá en la nuca, sobre la piel, y evitá que se acicale esa zona mientras seca.'],
+        caution: 'No adaptes la dosis de un producto de perro o gato a un animal más chico.' }
+    },
+    inyeccion: { all: { intro: 'Solo si el veterinario te enseñó a hacerlo y te dejó todo indicado.', steps: [
+      'Lavate las manos y prepará todo antes de buscar a la mascota.',
+      'Revisá dosis, jeringa y vencimiento. Si va en heladera, sacala unos minutos antes.',
+      'Aplicá en el lugar que te mostró el veterinario y rotá el sitio entre aplicaciones.',
+      'Tirá la aguja en un recipiente rígido con tapa, nunca suelta a la basura.'],
+      caution: 'Si aparece hinchazón, dolor fuerte o decaimiento después de la aplicación, consultá al veterinario.' } },
+    crema: { all: { intro: 'El desafío es que no se la lama antes de que actúe.', steps: [
+      'Limpiá y secá la zona como te indicó el veterinario.',
+      'Aplicá una capa fina con guante o con el dedo limpio.',
+      'Distraelo 10 a 15 minutos con juego o comida, o usá collar isabelino si se lame.'],
+      caution: 'Si la lesión empeora, huele mal o supura, no sigas solo con la crema: consultá.' } }
+  };
+  function viewTips() {
+    const form = TIPS[tipForm], hasSpecies = !form.all;
+    const tip = form.all || form[tipSpecies] || form.perro;
+    return `<div class="seg" role="group" aria-label="Forma del medicamento">${Object.keys(TIPS).map(k => `<button data-action="tip-form" data-v="${k}" aria-pressed="${k === tipForm}">${FORMS[k].label.split(' ')[0]}</button>`).join('')}</div>
+      ${hasSpecies ? `<div class="seg" role="group" aria-label="Especie">${Object.entries(SPECIES).map(([k, v]) => `<button data-action="tip-species" data-v="${k}" aria-pressed="${k === tipSpecies}">${v}</button>`).join('')}</div>` : ''}
+      <article class="tip"><h2>${FORMS[tipForm].label}${hasSpecies ? ' · ' + SPECIES[tipSpecies].toLowerCase() : ''}</h2><p>${tip.intro}</p>
+        <ol>${tip.steps.map(s => `<li><span>${s}</span></li>`).join('')}</ol>
+        <div class="caution"><b>Ojo:</b> ${tip.caution}</div></article>
+      <article class="tip"><h2>Para cualquier medicamento</h2><ol>
+        <li><span>Dalo siempre a la misma hora y marcalo apenas lo des, así nadie en casa lo repite.</span></li>
+        <li><span>Terminá los antibióticos aunque tu mascota ya se vea bien.</span></li>
+        <li><span>Si te olvidaste una toma, no la dupliques: consultá qué hacer.</span></li></ol>
+        <div class="caution"><b>Nunca</b> le des medicamentos para personas por tu cuenta. El paracetamol y el ibuprofeno pueden ser muy tóxicos para perros y gatos.</div></article>
+      <p class="disclaimer">Estos consejos no reemplazan la indicación de tu veterinario. La dosis siempre la define él.</p>`;
+  }
+
+  // ---------- Sheets ----------
+  let sheet = null, lastFocus = null;
+  function openSheet(html) {
+    if (!sheet) lastFocus = document.activeElement;
+    sheet = true;
+    $('#sheet-root').innerHTML = `<div class="scrim" data-action="close-sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="grab" aria-hidden="true"></div>${html}</div></div>`;
+    const first = $('#sheet-root').querySelector('h2');
+    if (first) { first.tabIndex = -1; first.focus({ preventScroll: true }); }
+  }
+  function closeSheet() { sheet = null; $('#sheet-root').innerHTML = ''; if (lastFocus && document.contains(lastFocus)) lastFocus.focus({ preventScroll: true }); }
+
+  let petDraft = null;
+  function readPetForm() {
+    if (!$('#pet-name')) return;
+    Object.assign(petDraft, { name: $('#pet-name').value, species: $('#pet-species').value, weight: $('#pet-weight').value, vet: $('#pet-vet').value });
+  }
+  function resizePhoto(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const S = 320, side = Math.min(img.naturalWidth, img.naturalHeight);
+        const c = document.createElement('canvas'); c.width = c.height = S;
+        c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, S, S);
+        URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')); };
+      img.src = url;
+    });
+  }
+  function petSheet(p, keep) {
+    if (!keep) petDraft = p ? { ...p } : { id: '', name: '', species: 'perro', emoji: '🐶', color: COLORS[state.pets.length % COLORS.length], weight: '', vet: '', photo: '' };
+    const emojis = ['🐶', '🐕', '🐩', '🐱', '🐈', '🐰', '🐹', '🐦', '🐢'];
+    const names = { c1: 'Ámbar', c2: 'Azul', c3: 'Verde', c4: 'Rosa', c5: 'Turquesa' };
+    openSheet(`<h2 id="sheet-title">${petDraft.id ? 'Editar mascota' : 'Nueva mascota'}</h2>
+      <form id="pet-form" autocomplete="off">
+        <div class="field"><label for="pet-name">Nombre</label><input id="pet-name" name="pet-name" required maxlength="30" value="${esc(petDraft.name)}" placeholder="Toby…"></div>
+        <div class="field"><span class="lbl">Foto</span><div class="photo-field" style="${pc(petDraft)}">
+          <div class="photo-prev" id="photo-prev" aria-hidden="true">${face(petDraft, 76)}</div>
+          <div class="photo-btns"><label class="btn small file-btn">${petDraft.photo ? 'Cambiar foto' : 'Elegir foto'}<input type="file" id="pet-photo" name="pet-photo" accept="image/*" aria-label="Elegir foto de la mascota"></label>
+          ${petDraft.photo ? '<button type="button" class="btn small quiet" data-action="remove-photo">Quitar</button>' : ''}</div></div>
+          <p class="hint" id="photo-hint">Si no cargás foto, se usa el ícono.</p></div>
+        <div class="field"><span class="lbl" id="emoji-lbl">Ícono</span><div class="picker" role="group" aria-labelledby="emoji-lbl">${emojis.map(e => `<button type="button" data-action="pick-emoji" data-v="${e}" aria-pressed="${e === petDraft.emoji}">${e}</button>`).join('')}</div></div>
+        <div class="field"><span class="lbl" id="color-lbl">Color de collar</span><div class="picker colors" role="group" aria-labelledby="color-lbl">${COLORS.map(c => `<button type="button" style="--sw: var(--${c})" data-action="pick-color" data-v="${c}" aria-pressed="${c === petDraft.color}" aria-label="${names[c]}"></button>`).join('')}</div><p class="hint">Identifica a la mascota en la agenda y en el stock.</p></div>
+        <div class="row2">
+          <div class="field"><label for="pet-species">Especie</label><select id="pet-species" name="pet-species">${Object.entries(SPECIES).map(([k, v]) => `<option value="${k}" ${k === petDraft.species ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+          <div class="field"><label for="pet-weight">Peso (kg)</label><input id="pet-weight" name="pet-weight" type="number" step="0.1" min="0" inputmode="decimal" value="${esc(petDraft.weight)}"></div>
+        </div>
+        <div class="field"><label for="pet-vet">Veterinario</label><input id="pet-vet" name="pet-vet" maxlength="60" value="${esc(petDraft.vet)}" placeholder="Opcional…"></div>
+        <div class="sheet-actions">${petDraft.id ? `<button type="button" class="btn danger" data-action="delete-pet" data-id="${petDraft.id}">Borrar mascota</button>` : `<button type="button" class="btn" data-action="close-sheet">Cancelar</button>`}<button class="btn primary">Guardar mascota</button></div>
+      </form>`);
+  }
+
+  let tDraft = null;
+  function treatmentSheet(t, petId) {
+    if (!state.pets.length) { toast('Primero agregá una mascota'); petSheet(); return; }
+    tDraft = t ? JSON.parse(JSON.stringify(t)) : { id: '', petId: petId || petFilter || state.pets[0].id, med: '', form: 'pastilla', dose: '', units: 1, freq: 'times', times: ['08:00', '20:00'], everyHours: 8, everyDays: 1, startDate: ymd(new Date()), endDate: '', food: 'indistinto', stock: '', alertDays: 5, notes: '', active: true };
+    drawTreatmentSheet(!!t);
+  }
+  function readTreatmentForm() {
+    const g = id => document.getElementById(id);
+    if (!g('t-med')) return;
+    Object.assign(tDraft, {
+      petId: g('t-pet').value, med: g('t-med').value.trim(), form: g('t-form').value, dose: g('t-dose').value.trim(),
+      units: parseFloat(String(g('t-units').value).replace(',', '.')) || 0, startDate: g('t-start').value, endDate: g('t-end').value,
+      food: g('t-food').value, stock: parseFloat(String(g('t-stock').value).replace(',', '.')) || 0,
+      alertDays: parseInt(g('t-alert').value, 10) || 5, notes: g('t-notes').value.trim(), active: g('t-active') ? g('t-active').checked : true
+    });
+    if (g('t-every-h')) tDraft.everyHours = parseInt(g('t-every-h').value, 10) || 8;
+    if (g('t-every-d')) tDraft.everyDays = parseInt(g('t-every-d').value, 10) || 1;
+    const times = [...document.querySelectorAll('[data-time]')].map(i => i.value).filter(Boolean);
+    if (times.length) tDraft.times = times;
+  }
+  function drawTreatmentSheet(editing) {
+    const d = tDraft, unit = FORMS[d.form].unit;
+    let freqFields;
+    if (d.freq === 'times') freqFields = `<div class="field"><span class="lbl">Horarios</span><div class="times">${d.times.map((tm, i) => `<div class="t"><input type="time" data-time="${i}" id="t-time-${i}" name="t-time-${i}" value="${tm}" aria-label="Horario ${i + 1}">${d.times.length > 1 ? `<button type="button" data-action="rm-time" data-i="${i}" aria-label="Quitar horario ${tm}">×</button>` : ''}</div>`).join('')}<button type="button" class="btn small" data-action="add-time">Agregar horario</button></div></div>`;
+    else if (d.freq === 'hours') freqFields = `<div class="row2"><div class="field"><label for="t-every-h">Cada (horas)</label><input id="t-every-h" name="t-every-h" type="number" min="1" max="72" inputmode="numeric" value="${d.everyHours}"></div><div class="field"><label for="t-time-0">Primera toma</label><input id="t-time-0" name="t-time-0" type="time" data-time="0" value="${d.times[0] || '08:00'}"></div></div>`;
+    else freqFields = `<div class="row2"><div class="field"><label for="t-every-d">Cada (días)</label><input id="t-every-d" name="t-every-d" type="number" min="1" max="365" inputmode="numeric" value="${d.everyDays}"></div><div class="field"><label for="t-time-0">Hora</label><input id="t-time-0" name="t-time-0" type="time" data-time="0" value="${d.times[0] || '09:00'}"></div></div>`;
+    openSheet(`<h2 id="sheet-title">${editing ? 'Editar tratamiento' : 'Nuevo tratamiento'}</h2>
+      <form id="treat-form" autocomplete="off">
+        <div class="row2">
+          <div class="field"><label for="t-pet">Mascota</label><select id="t-pet" name="t-pet">${state.pets.map(p => `<option value="${p.id}" ${p.id === d.petId ? 'selected' : ''}>${esc(p.emoji)} ${esc(p.name)}</option>`).join('')}</select></div>
+          <div class="field"><label for="t-form">Forma</label><select id="t-form" name="t-form">${Object.entries(FORMS).map(([k, v]) => `<option value="${k}" ${k === d.form ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label for="t-med">Medicamento</label><input id="t-med" name="t-med" required maxlength="50" value="${esc(d.med)}" placeholder="Como figura en la caja…"></div>
+        <div class="row2">
+          <div class="field"><label for="t-dose">Dosis indicada</label><input id="t-dose" name="t-dose" required maxlength="40" value="${esc(d.dose)}" placeholder="1/2 pastilla…"></div>
+          <div class="field"><label for="t-units">Descuenta (${unit})</label><input id="t-units" name="t-units" type="number" step="0.25" min="0" inputmode="decimal" value="${d.units}"></div>
+        </div>
+        <div class="field"><span class="lbl" id="freq-lbl">Frecuencia</span><div class="seg" role="group" aria-labelledby="freq-lbl">
+          <button type="button" data-action="freq" data-v="times" aria-pressed="${d.freq === 'times'}">Horarios fijos</button>
+          <button type="button" data-action="freq" data-v="hours" aria-pressed="${d.freq === 'hours'}">Cada N horas</button>
+          <button type="button" data-action="freq" data-v="days" aria-pressed="${d.freq === 'days'}">Cada N días</button></div></div>
+        ${freqFields}
+        <div class="row2">
+          <div class="field"><label for="t-start">Desde</label><input id="t-start" name="t-start" type="date" required value="${d.startDate}"></div>
+          <div class="field"><label for="t-end">Hasta</label><input id="t-end" name="t-end" type="date" value="${d.endDate}"></div>
+        </div>
+        <p class="hint">Dejá “Hasta” vacío si es un tratamiento crónico.</p>
+        <div class="field"><label for="t-food">Comida</label><select id="t-food" name="t-food"><option value="indistinto" ${d.food === 'indistinto' ? 'selected' : ''}>Indistinto</option><option value="con" ${d.food === 'con' ? 'selected' : ''}>Con comida</option><option value="sin" ${d.food === 'sin' ? 'selected' : ''}>En ayunas</option></select></div>
+        <div class="row2">
+          <div class="field"><label for="t-stock">Stock actual (${unit})</label><input id="t-stock" name="t-stock" type="number" step="0.5" min="0" inputmode="decimal" value="${d.stock}"></div>
+          <div class="field"><label for="t-alert">Avisar con (días)</label><input id="t-alert" name="t-alert" type="number" min="1" max="90" inputmode="numeric" value="${d.alertDays}"></div>
+        </div>
+        <div class="field"><label for="t-notes">Notas</label><textarea id="t-notes" name="t-notes" maxlength="200" placeholder="Indicaciones del veterinario…">${esc(d.notes)}</textarea></div>
+        ${editing ? `<label class="check-line" for="t-active"><input type="checkbox" id="t-active" name="t-active" ${d.active ? 'checked' : ''}> Tratamiento activo</label>` : ''}
+        <div class="sheet-actions">${editing ? `<button type="button" class="btn danger" data-action="delete-treatment" data-id="${d.id}">Borrar</button>` : `<button type="button" class="btn" data-action="close-sheet">Cancelar</button>`}<button class="btn primary">Guardar tratamiento</button></div>
+      </form>`);
+  }
+  function restockSheet(t) {
+    openSheet(`<h2 id="sheet-title">Reponer ${esc(t.med)}</h2>
+      <form id="restock-form" data-id="${t.id}" autocomplete="off">
+        <div class="field"><label for="r-qty">¿Cuántas ${unitOf(t)} agregaste?</label><input id="r-qty" name="r-qty" type="number" step="0.5" min="0.5" inputmode="decimal" required placeholder="20…"></div>
+        <p class="hint">Ahora tenés ${fmtNum(t.stock)} ${unitOf(t)}.</p>
+        <div class="sheet-actions"><button type="button" class="btn" data-action="close-sheet">Cancelar</button><button class="btn primary">Sumar al stock</button></div>
+      </form>`);
+  }
+  function settingsSheet() {
+    openSheet(`<h2 id="sheet-title">Ajustes</h2>
+      <form id="settings-form" autocomplete="off">
+        <div class="field"><label for="s-me">Tu nombre</label><input id="s-me" name="s-me" maxlength="30" autocomplete="given-name" value="${esc(state.me)}"><p class="hint">Queda registrado en cada toma que marcás, para que la familia sepa quién la dio.</p></div>
+        <p class="hint">${NATIVE ? 'Las alarmas suenan aunque la app esté cerrada. Los datos quedan guardados en este teléfono.' : 'Los datos quedan guardados en este dispositivo. Para alarmas con la app cerrada, usá la app de Android.'}</p>
+        <div class="sheet-actions"><button type="button" class="btn danger" data-action="clear-all-ask">Borrar todo</button><button class="btn primary">Guardar ajustes</button></div>
+        <button type="button" class="btn quiet" data-action="reset-example">Volver a los datos de ejemplo</button>
+      </form>`);
+  }
+  function confirmSheet(text, action, label) {
+    openSheet(`<h2 id="sheet-title">${text}</h2><p class="hint" style="margin-bottom:16px">No se puede deshacer.</p>
+      <div class="sheet-actions"><button class="btn" data-action="close-sheet">Cancelar</button><button class="btn primary" style="background:var(--late);border-color:var(--late)" data-action="${action}">${label}</button></div>`);
+  }
+
+  // ---------- Toast ----------
+  let toastTimer, toastUndo = null;
+  function toast(msg, undo) {
+    clearTimeout(toastTimer);
+    $('#toast-root').innerHTML = `<div class="toast" role="status"><span>${esc(msg)}</span>${undo ? '<button data-action="toast-undo">Deshacer</button>' : ''}</div>`;
+    toastUndo = undo || null;
+    toastTimer = setTimeout(() => { $('#toast-root').innerHTML = ''; toastUndo = null; }, 5000);
+  }
+
+  // ---------- Actions ----------
+  function commit() { if (!save()) toast('No hay espacio para guardar. Probá con una foto más chica.'); render(); syncNotifications(); }
+  function setDose(key, status) {
+    const t = treat(key.split('|')[0]);
+    const prev = state.doses[key] ? { ...state.doses[key] } : null, prevStock = t.stock;
+    if (status === 'given') {
+      state.doses[key] = { status, by: state.me || 'Yo', at: new Date().toISOString() };
+      t.stock = Math.max(0, Math.round((t.stock - (+t.units || 0)) * 100) / 100);
+    } else if (status === 'skipped') {
+      state.doses[key] = { status, by: state.me || 'Yo', at: new Date().toISOString() };
+    } else if (status === 'snoozed') {
+      state.doses[key] = { status, snoozeTo: new Date(Date.now() + 15 * 6e4).toISOString() };
+    }
+    commit();
+    const p = pet(t.petId);
+    toast(status === 'given' ? `${t.med} de ${p.name}: dada` : status === 'skipped' ? 'Toma omitida' : 'Te aviso en 15 minutos',
+      () => { if (prev) state.doses[key] = prev; else delete state.doses[key]; t.stock = prevStock; commit(); });
+  }
+  function undoDose(key) {
+    const rec = state.doses[key]; if (!rec) return;
+    const t = treat(key.split('|')[0]), prevRec = { ...rec }, prevStock = t?.stock;
+    if (rec.status === 'given' && t) t.stock = Math.round((t.stock + (+t.units || 0)) * 100) / 100;
+    delete state.doses[key]; commit();
+    toast('Toma marcada como pendiente', () => { state.doses[key] = prevRec; if (t) t.stock = prevStock; commit(); });
+  }
+
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-action], [data-tab]');
+    if (!el) return;
+    if (el.dataset.tab) { tab = el.dataset.tab; render(); window.scrollTo({ top: 0 }); return; }
+    const a = el.dataset.action;
+    if (a === 'close-sheet-bg') { if (e.target === el) closeSheet(); return; }
+    switch (a) {
+      case 'give': return setDose(el.dataset.key, 'given');
+      case 'skip': return setDose(el.dataset.key, 'skipped');
+      case 'snooze': return setDose(el.dataset.key, 'snoozed');
+      case 'undo-dose': return undoDose(el.dataset.key);
+      case 'toast-undo': if (toastUndo) toastUndo(); $('#toast-root').innerHTML = ''; toastUndo = null; return;
+      case 'filter': petFilter = el.dataset.v; return render();
+      case 'new-pet': return petSheet();
+      case 'edit-pet': return petSheet(pet(el.dataset.id));
+      case 'new-treatment': return treatmentSheet(null, el.dataset.pet);
+      case 'edit-treatment': return treatmentSheet(treat(el.dataset.id));
+      case 'restock': return restockSheet(treat(el.dataset.id));
+      case 'open-settings': return settingsSheet();
+      case 'close-sheet': return closeSheet();
+      case 'exact-alarm': closeSheet(); if (LN) LN.changeExactNotificationSetting().then(syncNotifications).catch(() => {}); return;
+      case 'remove-photo': readPetForm(); petDraft.photo = ''; petSheet(null, true); return;
+      case 'pick-emoji': case 'pick-color':
+        petDraft[a === 'pick-emoji' ? 'emoji' : 'color'] = el.dataset.v;
+        el.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === el));
+        { const pv = $('#photo-prev'); if (pv) { pv.parentElement.style.setProperty('--pc', `var(--${petDraft.color})`); if (!petDraft.photo) pv.textContent = petDraft.emoji; } } return;
+      case 'freq': readTreatmentForm(); tDraft.freq = el.dataset.v; if (tDraft.freq !== 'times') tDraft.times = [tDraft.times[0] || '08:00']; drawTreatmentSheet(!!tDraft.id); return;
+      case 'add-time': readTreatmentForm(); tDraft.times.push('14:00'); drawTreatmentSheet(!!tDraft.id); return;
+      case 'rm-time': readTreatmentForm(); tDraft.times.splice(+el.dataset.i, 1); drawTreatmentSheet(!!tDraft.id); return;
+      case 'tip-form': tipForm = el.dataset.v; return render();
+      case 'tip-species': tipSpecies = el.dataset.v; return render();
+      case 'delete-pet': return confirmSheet(`¿Borrar a ${esc(pet(el.dataset.id)?.name)} y sus tratamientos?`, 'confirm-delete-pet:' + el.dataset.id, 'Borrar mascota');
+      case 'delete-treatment': return confirmSheet(`¿Borrar ${esc(treat(el.dataset.id)?.med)}?`, 'confirm-delete-treatment:' + el.dataset.id, 'Borrar tratamiento');
+      case 'clear-all-ask': return confirmSheet('¿Borrar todos los datos?', 'confirm-clear', 'Borrar todo');
+      case 'reset-example': state = seed(); save(); closeSheet(); tab = 'hoy'; petFilter = ''; render(); toast('Datos de ejemplo restaurados'); return;
+    }
+    if (a === 'confirm-clear') { state = { example: false, me: state.me, pets: [], treatments: [], doses: {} }; save(); closeSheet(); tab = 'hoy'; petFilter = ''; render(); return; }
+    if (a?.startsWith('confirm-delete-pet:')) {
+      const id = a.split(':')[1], tids = state.treatments.filter(t => t.petId === id).map(t => t.id);
+      state.pets = state.pets.filter(p => p.id !== id); state.treatments = state.treatments.filter(t => t.petId !== id);
+      for (const k of Object.keys(state.doses)) if (tids.includes(k.split('|')[0])) delete state.doses[k];
+      if (petFilter === id) petFilter = '';
+      closeSheet(); commit(); return;
+    }
+    if (a?.startsWith('confirm-delete-treatment:')) {
+      const id = a.split(':')[1]; state.treatments = state.treatments.filter(t => t.id !== id);
+      for (const k of Object.keys(state.doses)) if (k.startsWith(id + '|')) delete state.doses[k];
+      closeSheet(); commit(); return;
+    }
+  });
+  document.addEventListener('change', async e => {
+    if (e.target.id === 't-form') { readTreatmentForm(); drawTreatmentSheet(!!tDraft.id); }
+    if (e.target.id === 'pet-photo') {
+      const file = e.target.files && e.target.files[0]; if (!file) return;
+      if (!file.type.startsWith('image/')) { $('#photo-hint').textContent = 'Ese archivo no es una imagen. Elegí una foto JPG o PNG.'; return; }
+      $('#photo-hint').textContent = 'Preparando foto…';
+      try { readPetForm(); petDraft.photo = await resizePhoto(file); petSheet(null, true); $('#photo-hint').textContent = 'Foto lista. Tocá “Guardar mascota”.'; }
+      catch (err) { $('#photo-hint').textContent = 'No se pudo abrir esa foto. Probá con otra.'; }
+    }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheet) closeSheet(); });
+  document.addEventListener('submit', e => {
+    e.preventDefault();
+    const f = e.target;
+    if (f.id === 'pet-form') {
+      const name = $('#pet-name').value.trim(); if (!name) return;
+      Object.assign(petDraft, { name, species: $('#pet-species').value, weight: parseFloat($('#pet-weight').value) || '', vet: $('#pet-vet').value.trim() });
+      petDraft.name = name;
+      if (petDraft.id) Object.assign(pet(petDraft.id), petDraft); else { petDraft.id = uid(); state.pets.push(petDraft); }
+      closeSheet(); commit(); toast(`${name} guardado`);
+    } else if (f.id === 'treat-form') {
+      readTreatmentForm();
+      if (!tDraft.med || !tDraft.dose) return;
+      if (tDraft.endDate && tDraft.endDate < tDraft.startDate) { toast('“Hasta” tiene que ser igual o posterior a “Desde”. Corregí la fecha.'); $('#t-end').focus(); return; }
+      tDraft.times = [...new Set(tDraft.times)].sort();
+      if (tDraft.id) Object.assign(treat(tDraft.id), tDraft); else { tDraft.id = uid(); state.treatments.push(tDraft); }
+      closeSheet(); commit(); toast('Tratamiento guardado');
+    } else if (f.id === 'restock-form') {
+      const t = treat(f.dataset.id), q = parseFloat($('#r-qty').value.replace(',', '.'));
+      if (!(q > 0)) return;
+      t.stock = Math.round((t.stock + q) * 100) / 100; closeSheet(); commit(); toast(`Stock: ${fmtNum(t.stock)} ${unitOf(t)}`);
+    } else if (f.id === 'settings-form') {
+      state.me = $('#s-me').value.trim() || 'Yo'; closeSheet(); commit(); toast('Ajustes guardados');
+    }
+  });
+
+  // ---------- Native alarms (Android via Capacitor) ----------
+  const CAP = window.Capacitor;
+  const NATIVE = !!(CAP && CAP.isNativePlatform && CAP.isNativePlatform());
+  const LN = NATIVE && CAP.Plugins ? CAP.Plugins.LocalNotifications : null;
+  const hash = str => { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return Math.abs(h) % 2000000000 + 1; };
+  let notifReady = false, syncTimer;
+  async function initNotifications() {
+    if (!LN) return;
+    try {
+      let perm = await LN.checkPermissions();
+      if (perm.display !== 'granted') perm = await LN.requestPermissions();
+      if (perm.display !== 'granted') { toast('Activá las notificaciones en Ajustes de Android para recibir las alarmas'); return; }
+      try { await LN.createChannel({ id: 'tomas', name: 'Tomas de medicamentos', description: 'Alarmas a la hora de cada toma', importance: 5, visibility: 1, vibration: true }); } catch (e) {}
+      try {
+        const ex = await LN.checkExactNotificationSetting();
+        if (ex.exact_alarm !== 'granted') openSheet(`<h2 id="sheet-title">Permitir alarmas a horario</h2><p class="hint" style="margin-bottom:16px">Para que el aviso suene justo a la hora de cada toma, Android pide un permiso extra. Te llevo a la pantalla para activarlo: buscá “Pastillero” y activá “Permitir alarmas”.</p><div class="sheet-actions"><button class="btn" data-action="close-sheet">Ahora no</button><button class="btn primary" data-action="exact-alarm">Activar</button></div>`);
+      } catch (e) {}
+      await LN.registerActionTypes({ types: [{ id: 'TOMA', actions: [{ id: 'given', title: 'Ya se la di' }, { id: 'snooze', title: '+15 min' }] }] });
+      LN.addListener('localNotificationActionPerformed', ev => {
+        const key = ev.notification && ev.notification.extra && ev.notification.extra.key;
+        if (!key || !treat(key.split('|')[0])) return;
+        if (ev.actionId === 'given') setDose(key, 'given');
+        else if (ev.actionId === 'snooze') setDose(key, 'snoozed');
+        else { tab = 'hoy'; render(); }
+      });
+      notifReady = true; syncNotifications();
+    } catch (e) { console.warn('notifications', e); }
+  }
+  function syncNotifications() { if (!notifReady) return; clearTimeout(syncTimer); syncTimer = setTimeout(doSync, 600); }
+  async function doSync() {
+    try {
+      const pending = await LN.getPending();
+      if (pending.notifications.length) await LN.cancel({ notifications: pending.notifications.map(n => ({ id: n.id })) });
+      const now = new Date(), list = [];
+      for (let i = 0; i < 3; i++) for (const d of dayDoses(addDays(ymd(now), i))) {
+        if (d.status === 'given' || d.status === 'skipped') continue;
+        const due = dueAt(d), food = FOOD[d.t.food];
+        const body = `${d.t.dose}${food ? ' · ' + food : ''}`;
+        if (due > now) list.push({ id: hash(d.key), title: `${d.t.med} para ${d.p.name}`, body, schedule: { at: due, allowWhileIdle: true }, channelId: 'tomas', actionTypeId: 'TOMA', extra: { key: d.key } });
+        const again = new Date(+due + 30 * 6e4);
+        if (again > now) list.push({ id: hash(d.key + '#r'), title: `Falta dar: ${d.t.med} a ${d.p.name}`, body: `Era a las ${hm(due)}. ${body}`, schedule: { at: again, allowWhileIdle: true }, channelId: 'tomas', actionTypeId: 'TOMA', extra: { key: d.key } });
+      }
+      for (const t of state.treatments) {
+        const s = stockInfo(t); if (!(s.low || s.out)) continue;
+        const at = new Date(now); at.setHours(at.getHours() < 10 ? 10 : 34, 0, 0, 0);
+        const p = pet(t.petId);
+        list.push({ id: hash('stock|' + t.id), title: s.out ? `Sin stock de ${t.med}` : `Queda poco ${t.med}`, body: s.out ? `No alcanza para la próxima toma de ${p?.name}.` : `A ${p?.name} le alcanza para ${Math.floor(s.daysLeft)} días. Reponé a tiempo.`, schedule: { at, allowWhileIdle: true }, channelId: 'tomas' });
+      }
+      list.sort((a, b) => a.schedule.at - b.schedule.at);
+      if (list.length) await LN.schedule({ notifications: list.slice(0, 60) });
+    } catch (e) { console.warn('sync', e); }
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { render(); syncNotifications(); } });
+  if (!NATIVE && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+
+  state = load();
+  render();
+  initNotifications();
+  setInterval(() => { if (!sheet && tab === 'hoy') render(); }, 60000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+name: App Android
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Crear proyecto Android
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Ícono, permisos y versión
+        run: |
+          RES=android/app/src/main/res
+          rm -rf $RES/mipmap-anydpi-v26
+          cp -r android-res/* $RES/
+          MAN=android/app/src/main/AndroidManifest.xml
+          grep -q SCHEDULE_EXACT_ALARM $MAN || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />\n</manifest>#' $MAN
+          sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+
+      - name: Compilar APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../Pastillero.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pastillero-APK
+          path: Pastillero.apk
+
+      - name: Publicar descarga
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Pastillero 1.0.${{ github.run_number }}
+          body: |
+            Descargá **Pastillero.apk** en tu Android y abrilo para instalar.
+            Si el teléfono lo pide, permití instalar apps de esta fuente.
+          files: Pastillero.apk
+          make_latest: true

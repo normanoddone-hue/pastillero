@@ -238,6 +238,12 @@ details.fold[open] > summary .chev { transform: rotate(90deg); }
 .days-left.out b { color: var(--late); }
 .blister { background: linear-gradient(160deg, var(--sunk), color-mix(in srgb, var(--sunk) 70%, var(--surface))); border-radius: 14px; padding: 12px; display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; box-shadow: inset 0 0 0 1px var(--line); }
 .blister i { aspect-ratio: 1.7; border-radius: 999px; background: var(--foil); box-shadow: inset 0 1px 3px rgba(0,0,0,.18); max-width: 100%; }
+.blister i.half { background: linear-gradient(90deg, var(--pc) 50%, var(--foil) 50%); }
+.units-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.units-pick button { min-width: 52px; height: 48px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-weight: 700; font-size: 18px; transition: background-color .15s, border-color .15s, transform .12s; }
+.units-pick button:hover { border-color: var(--accent); }
+.units-pick button:active { transform: scale(.95); }
+.units-pick button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .blister i.full { background: var(--pc); box-shadow: inset 0 -3px 0 rgba(0,0,0,.18), inset 0 2px 0 rgba(255,255,255,.35); }
 .level { height: 16px; border-radius: 8px; background: var(--sunk); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
 .level span { display: block; height: 100%; background: var(--pc); border-radius: 8px; }
@@ -497,6 +503,26 @@ form { display: grid; gap: 14px; }
     return '';
   }
   const unitOf = t => FORMS[t.form]?.unit || 'unidades';
+  const FRAC = { 0: '', 0.25: '¼', 0.5: '½', 0.75: '¾' };
+  function pillText(n) {
+    const q = Math.round(n * 4) / 4, whole = Math.floor(q), f = FRAC[Math.round((q - whole) * 100) / 100];
+    if (f === undefined) return fmtNum(n);
+    return whole && f ? `${whole} ${f}` : whole ? String(whole) : f || '0';
+  }
+  const unitWord = (n, t) => { const u = unitOf(t); return n > 0 && n <= 1 && u.endsWith('s') ? u.replace(/s$/, '') : u; };
+  const amount = (n, t) => unitOf(t) === 'pastillas' ? pillText(n) : fmtNum(n);
+  const PILL_STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3];
+  const pillLabel = n => (n === 1 ? '1 pastilla' : n < 1 ? `${pillText(n)} pastilla` : `${pillText(n)} pastillas`);
+  function unitsFields(d, unit) {
+    const dose = `<div class="field"><label for="t-dose">Dosis indicada</label><input id="t-dose" name="t-dose" required maxlength="40" value="${esc(d.dose)}" placeholder="${d.form === 'pastilla' ? '1/2 pastilla…' : '0,5 ml…'}"></div>`;
+    if (d.form === 'pastilla') {
+      const u = +d.units || 1;
+      return `${dose}<div class="field"><span class="lbl" id="units-lbl">Pastillas por toma</span>
+        <div class="units-pick" role="group" aria-labelledby="units-lbl">${PILL_STEPS.map(v => `<button type="button" data-action="pick-units" data-v="${v}" aria-pressed="${Math.abs(v - u) < 0.01}" aria-label="${pillLabel(v)}">${pillText(v)}</button>`).join('')}</div>
+        <input type="hidden" id="t-units" name="t-units" value="${u}"><p class="hint">Es lo que se descuenta del stock en cada toma.</p></div>`;
+    }
+    return `<div class="row2">${dose}<div class="field"><label for="t-units">Descuenta (${unit})</label><input id="t-units" name="t-units" type="number" step="0.25" min="0" inputmode="decimal" value="${d.units}"></div></div>`;
+  }
 
   // ---------- Render ----------
   let tab = 'hoy', petFilter = '', tipForm = 'pastilla', tipSpecies = 'perro';
@@ -614,15 +640,15 @@ form { display: grid; gap: 14px; }
       let visual;
       if (countable) {
         const cells = Math.max(10, Math.ceil(Math.max(t.stock, 1) / 10) * 10);
-        visual = `<div class="blister" role="img" aria-label="${fmtNum(t.stock)} ${unit} restantes">${Array.from({ length: cells }, (_, i) => `<i class="${i < Math.floor(t.stock) ? 'full' : ''}"></i>`).join('')}</div>`;
+        visual = `<div class="blister" role="img" aria-label="${amount(t.stock, t)} ${unit} restantes">${Array.from({ length: cells }, (_, i) => `<i class="${i < Math.floor(t.stock) ? 'full' : i < t.stock ? 'half' : ''}"></i>`).join('')}</div>`;
       } else {
         const ref = Math.max(t.stock, unitsPerDay(t) * 30, 1);
         visual = `<div class="level" role="img" aria-label="${fmtNum(t.stock)} ${unit} restantes"><span style="width:${Math.min(100, (t.stock / ref) * 100)}%"></span></div>`;
       }
       const dl = isFinite(s.daysLeft) ? Math.floor(s.daysLeft) : '—';
-      const foot = t.endDate && s.covers ? 'Alcanza hasta terminar el tratamiento' : s.out ? 'No alcanza para la próxima toma' : (t.freq === 'days' && t.everyDays > 1 ? `Usa ${fmtNum(t.units)} ${unit} cada ${t.everyDays} días` : `Usa ${fmtNum(s.perDay)} ${unit} por día`);
+      const foot = t.endDate && s.covers ? 'Alcanza hasta terminar el tratamiento' : s.out ? 'No alcanza para la próxima toma' : (t.freq === 'days' && t.everyDays > 1 ? `Usa ${amount(t.units, t)} ${unitWord(t.units, t)} cada ${t.everyDays} días` : `Usa ${amount(s.perDay, t)} ${unitWord(s.perDay, t)} por día`);
       html += `<section class="stock-card" style="${pc(p)}">
-        <div class="stock-top"><div><h2>${esc(t.med)}</h2><p><i></i>${esc(p?.name)} · <span class="num">${fmtNum(t.stock)}</span> ${unit}</p></div>
+        <div class="stock-top"><div><h2>${esc(t.med)}</h2><p><i></i>${esc(p?.name)} · <span class="num">${amount(t.stock, t)}</span> ${unitWord(t.stock, t)}</p></div>
         <div class="days-left ${s.out ? 'out' : s.low ? 'low' : ''}"><b>${dl}</b><span>días</span></div></div>
         ${visual}
         <div class="stock-foot"><span>${foot}</span><button class="btn small" data-action="restock" data-id="${t.id}">Repuse</button></div>
@@ -794,10 +820,7 @@ form { display: grid; gap: 14px; }
           <div class="field"><label for="t-form">Forma</label><select id="t-form" name="t-form">${Object.entries(FORMS).map(([k, v]) => `<option value="${k}" ${k === d.form ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
         </div>
         <div class="field"><label for="t-med">Medicamento</label><input id="t-med" name="t-med" required maxlength="50" value="${esc(d.med)}" placeholder="Como figura en la caja…"></div>
-        <div class="row2">
-          <div class="field"><label for="t-dose">Dosis indicada</label><input id="t-dose" name="t-dose" required maxlength="40" value="${esc(d.dose)}" placeholder="1/2 pastilla…"></div>
-          <div class="field"><label for="t-units">Descuenta (${unit})</label><input id="t-units" name="t-units" type="number" step="0.25" min="0" inputmode="decimal" value="${d.units}"></div>
-        </div>
+        ${unitsFields(d, unit)}
         <div class="field"><span class="lbl" id="freq-lbl">Frecuencia</span><div class="seg" role="group" aria-labelledby="freq-lbl">
           <button type="button" data-action="freq" data-v="times" aria-pressed="${d.freq === 'times'}">Horarios fijos</button>
           <button type="button" data-action="freq" data-v="hours" aria-pressed="${d.freq === 'hours'}">Cada N horas</button>
@@ -821,8 +844,8 @@ form { display: grid; gap: 14px; }
   function restockSheet(t) {
     openSheet(`<h2 id="sheet-title">Reponer ${esc(t.med)}</h2>
       <form id="restock-form" data-id="${t.id}" autocomplete="off">
-        <div class="field"><label for="r-qty">¿Cuántas ${unitOf(t)} agregaste?</label><input id="r-qty" name="r-qty" type="number" step="0.5" min="0.5" inputmode="decimal" required placeholder="20…"></div>
-        <p class="hint">Ahora tenés ${fmtNum(t.stock)} ${unitOf(t)}.</p>
+        <div class="field"><label for="r-qty">¿Cuántas ${unitOf(t)} agregaste?</label><input id="r-qty" name="r-qty" type="number" step="0.25" min="0.25" inputmode="decimal" required placeholder="20…"></div>
+        <p class="hint">Ahora tenés ${amount(t.stock, t)} ${unitOf(t)}.</p>
         <div class="sheet-actions"><button type="button" class="btn" data-action="close-sheet">Cancelar</button><button class="btn primary">Sumar al stock</button></div>
       </form>`);
   }
@@ -901,6 +924,14 @@ form { display: grid; gap: 14px; }
         petDraft[a === 'pick-emoji' ? 'emoji' : 'color'] = el.dataset.v;
         el.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === el));
         { const pv = $('#photo-prev'); if (pv) { pv.parentElement.style.setProperty('--pc', `var(--${petDraft.color})`); if (!petDraft.photo) pv.textContent = petDraft.emoji; } } return;
+      case 'pick-units': {
+        const v = +el.dataset.v, inp = $('#t-units'), dose = $('#t-dose');
+        const prevAuto = pillLabel(+inp.value);
+        inp.value = v;
+        el.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === el));
+        if (dose && (!dose.value.trim() || dose.value.trim() === prevAuto)) dose.value = pillLabel(v);
+        return;
+      }
       case 'freq': readTreatmentForm(); tDraft.freq = el.dataset.v; if (tDraft.freq !== 'times') tDraft.times = [tDraft.times[0] || '08:00']; drawTreatmentSheet(!!tDraft.id); return;
       case 'add-time': readTreatmentForm(); tDraft.times.push('14:00'); drawTreatmentSheet(!!tDraft.id); return;
       case 'rm-time': readTreatmentForm(); tDraft.times.splice(+el.dataset.i, 1); drawTreatmentSheet(!!tDraft.id); return;
@@ -955,7 +986,7 @@ form { display: grid; gap: 14px; }
     } else if (f.id === 'restock-form') {
       const t = treat(f.dataset.id), q = parseFloat($('#r-qty').value.replace(',', '.'));
       if (!(q > 0)) return;
-      t.stock = Math.round((t.stock + q) * 100) / 100; closeSheet(); commit(); toast(`Stock: ${fmtNum(t.stock)} ${unitOf(t)}`);
+      t.stock = Math.round((t.stock + q) * 100) / 100; closeSheet(); commit(); toast(`Stock: ${amount(t.stock, t)} ${unitOf(t)}`);
     } else if (f.id === 'settings-form') {
       state.me = $('#s-me').value.trim() || 'Yo'; closeSheet(); commit(); toast('Ajustes guardados');
     }

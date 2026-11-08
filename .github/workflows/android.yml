@@ -42,6 +42,11 @@ jobs:
           sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/" android/app/build.gradle
           sed -i "s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
 
+      - name: Firma fija (permite actualizar encima)
+        run: |
+          mkdir -p ~/.android
+          cp signing/debug.keystore ~/.android/debug.keystore
+
       - name: Compilar APK
         working-directory: android
         run: |
@@ -62,5 +67,6 @@ jobs:
           body: |
             Descargá **Pastillero.apk** en tu Android y abrilo para instalar.
             Si el teléfono lo pide, permití instalar apps de esta fuente.
+            Desde la versión 1.0.3 cada actualización se instala encima sin perder datos.
           files: Pastillero.apk
           make_latest: true

@@ -44,8 +44,23 @@ jobs:
 
       - name: Firma fija (permite actualizar encima)
         run: |
-          mkdir -p ~/.android
-          cp signing/debug.keystore ~/.android/debug.keystore
+          python3 - <<'PY'
+          p = 'android/app/build.gradle'
+          s = open(p).read()
+          cfg = ("android {\n"
+                 "    signingConfigs {\n"
+                 "        debug {\n"
+                 "            storeFile rootProject.file('../signing/debug.keystore')\n"
+                 "            storePassword 'android'\n"
+                 "            keyAlias 'androiddebugkey'\n"
+                 "            keyPassword 'android'\n"
+                 "        }\n"
+                 "    }\n")
+          assert s.count('android {') >= 1
+          s = s.replace('android {\n', cfg, 1)
+          open(p, 'w').write(s)
+          PY
+          grep -n -A6 "signingConfigs" android/app/build.gradle
 
       - name: Compilar APK
         working-directory: android
